@@ -1,0 +1,39 @@
+{
+    "interactionModel":{
+        "languageModel":{
+            "invocationName":"board game geek",
+            "types":[],
+            "intents":[
+                {
+                  "name": "AMAZON.CancelIntent",
+                  "samples": []
+                },
+                {
+                  "name": "AMAZON.HelpIntent",
+                  "samples": []
+                },
+                {
+                  "name": "AMAZON.StopIntent",
+                  "samples": []
+                },
+                {
+                    "name":"BGGHotIntent",
+                    "slots":[
+                        {
+                            "name": "count",
+                            "type": "AMAZON.NUMBER"
+                        }
+
+                    ],
+                    "samples":[
+                        "for the top {count} boardgames",
+                        "for the top {count} hot boardgames",
+                        "the top {count} hot boardgames",
+                        "what are the hot boardgames",
+                        "tell me the top {count} boardgames"
+                    ]
+                }
+            ]
+        }
+    }
+}

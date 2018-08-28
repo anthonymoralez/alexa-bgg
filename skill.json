@@ -1,0 +1,37 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "Alexa can give you hot information from Board Game Geek.",
+          "examplePhrases": [
+            "Alexa open board game geek",
+            "Alexa ask board game geek what are the hot boardgames",
+            "Alexa ask board game geek for the top five hot boardgames"
+          ],
+          "name": "board game geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games."
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "",
+      "category": "GAME_INFO_AND_ACCESSORY",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "sourceDir": "lambda/custom"
+        }
+      }
+    },
+    "manifestVersion": "1.0",
+    "privacyAndCompliance": {
+      "allowsPurchases": false,
+      "isExportCompliant": true,
+      "containsAds": false,
+      "isChildDirected": false,
+      "usesPersonalInfo": false
+    }
+  }
+}

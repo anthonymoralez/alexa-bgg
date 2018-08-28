@@ -1,0 +1,15 @@
+{
+  "name": "board-game-geek",
+  "version": "1.0.0",
+  "description": "Alexa can now talk about board games.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ask-sdk-core": "^2.0.0",
+    "ask-sdk-model": "^1.0.0",
+    "i18next": "^10.5.0",
+    "i18next-sprintf-postprocessor": "^0.2.2",
+    "bgg": "anthonymoralez/bgg#03fa2f713e7"
+  }
+}
