@@ -1,12 +1,13 @@
 /* jshint esversion: 6 */
 /* jshint laxbreak: true */
+/* jshint node: true */
 /* global require, exports, console */
 
 "use strict";
 const Alexa = require('ask-sdk-core');
 const i18n = require('i18next');
 const sprintf = require('i18next-sprintf-postprocessor');
-const bgg = require('bgg')();
+const bgg = require('./bgg');
 
 const HotIntentHandler = {
   canHandle(handlerInput) {
@@ -36,8 +37,7 @@ const HotIntentHandler = {
     sessionAttributes.speakOutput += `Here are the top ${pageSize}: `;
 
     try {
-      const list = await bgg('hot', {boardgame: ''});
-      let items = list.items.item;
+      const items = await bgg.getHotList();
       items.slice(0, pageSize).forEach(function(i) {
           sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
           //listItemsBuilder.addItem(i.thumbnail.value, i.id, i.name.value, `Year published: ${i.yearpublished.value}`);
