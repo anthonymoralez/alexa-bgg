@@ -33,12 +33,14 @@ const HotIntentHandler = {
     if (handlerInput.requestEnvelope.request.type === 'LaunchRequest') {
       sessionAttributes.speakOutput = "Board game geek dot com ranks the top hot boardgames. ";
     }
-      sessionAttributes.speakOutput += `Here are the top ${pageSize}: `;
+    sessionAttributes.speakOutput += `Here are the top ${pageSize}: `;
+
     try {
       const list = await bgg('hot', {boardgame: ''});
       let items = list.items.item;
       items.slice(0, pageSize).forEach(function(i) {
-          sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `
+          sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
+          //listItemsBuilder.addItem(i.thumbnail.value, i.id, i.name.value, `Year published: ${i.yearpublished.value}`);
       });
     } catch(error){
         console.log(error);

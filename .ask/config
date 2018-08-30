@@ -8,7 +8,7 @@
           "apis": {
             "custom": {
               "endpoint": {
-                "uri": "arn:aws:lambda:us-west-2:496206858315:function:ask-board-game-geek"
+                "uri": "arn:aws:lambda:us-west-2:496206858315:function:ask-board-game-geek-dev"
               }
             }
           }
