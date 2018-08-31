@@ -54,7 +54,7 @@ async function putHotListToDDB() {
     console.debug(`PutRequest2: ${JSON.stringify(params)}`);
     results = await docClient.batchWrite(params).promise();
     console.debug(`BATCHWRITE_2: ${JSON.stringify(results)}`);
-    return results;
+    return bggList.items.item;
   } catch(error) {
     console.error(`putToDDB ${error}`);
   }
@@ -70,8 +70,7 @@ module.exports = {
       if (list.length > 0) {
         return list;
       } else {
-        putHotListToDDB();
-        return getHotListFromDDB();
+        return putHotListToDDB();
       }
     } catch(err) {
       console.log(err);
