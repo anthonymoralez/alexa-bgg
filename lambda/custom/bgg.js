@@ -19,6 +19,7 @@ function makeBulkPutRequest(items) {
     i.id = parseInt(i.id);
     i.rank = parseInt(i.rank);
     i.createdAt = now;
+    i.thumbnail = (i.thumbnail && i.thumbnail.length !== 0) && i.thumbnail || 'https://cf.geekdo-static.com/images/geekdo/bgg_cornerlogo.png';
     return { PutRequest: { Item: i } };
   });
   const request = { RequestItems: { } };
@@ -63,14 +64,13 @@ async function putHotListToDDB() {
 
 
 module.exports = {
-  getHotListFromDDB: getHotListFromDDB,
   async getHotList() {
     try {
-      const list = getHotListFromDDB();
+      const list = await getHotListFromDDB();
       if (list.length > 0) {
         return list;
       } else {
-        return putHotListToDDB();
+        return await putHotListToDDB();
       }
     } catch(err) {
       console.log(err);
