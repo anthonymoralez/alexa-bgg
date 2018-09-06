@@ -2,12 +2,98 @@
 /* jshint laxbreak: true */
 /* jshint node: true */
 /* global require, exports, console */
+/* vim: ts=4 sw=4 expandtab */
 
 "use strict";
 const Alexa = require('ask-sdk');
 const i18n = require('i18next');
 const sprintf = require('i18next-sprintf-postprocessor');
 const bgg = require('./bgg');
+
+const ShowBoardGameIntentHandler = {
+    canHandle(handlerInput) {
+        return handlerInput.requestEnvelope.request.type === 'Display.ElementSelected'
+            || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
+                && handlerInput.requestEnvelope.request.intent.name === 'ShowBoardGameIntent');
+    },
+    async handle(handlerInput) {
+        console.log("show board game intent");
+        const request = handlerInput.requestEnvelope.request;
+        const currentIntent = request.intent;
+        const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
+        const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+        sessionAttributes.speakOutput = "";
+
+
+        let id;
+        if (request.token) {
+            id = request.token;
+            console.log(`request.token: ${request.token}`);
+        } else if (hasSlot("gameName", currentIntent)) {
+            const name = getSlotValue("gameName", currentIntent).toLowerCase();
+            if (isANumber(name)) {
+                if (sessionAttributes.pageSize === undefined) {
+                    sessionAttributes.pageSize = 10;
+                }
+
+                console.log(`sessionAttributes: ${JSON.stringify(sessionAttributes)}`);
+                if (sessionAttributes.items && sessionAttributes.items.length === 0) {
+                    await loadItems(sessionAttributes);
+                    console.log("loaded games");
+                }
+
+                const rank = parseInt(name,10);
+                id = sessionAttributes.items[rank - 1].id;
+            } else {
+                console.log(`gameName: ${name}`);
+                console.log(`sessionAttributes: ${JSON.stringify(sessionAttributes)}`);
+
+                if (sessionAttributes.items && sessionAttributes.items.length !== 0) {
+                    console.log('checking session for game id');
+
+                    let item = sessionAttributes.items.find(function(i) {
+                        return i.name.value.toLowerCase() === name;
+                    });
+                    if (item !== undefined) {
+                        console.log("found in hot games");
+                        id = item.id;
+                    }
+                }
+            }
+            if (id === undefined) {
+                const results = await bgg.search(name);
+                console.log(results);
+                id = getFirstOrOnly(results).id;
+            }
+        } else {
+            sessionAttributes.speakOutput = "I'm sorry. I think you were asking me to tell you about a board game, but I didn't catch the name or number of the game.";
+            sessionAttributes.repromptSpeech = ` You can say describe ${sessionAttributes.items[0].name.value}. Or you can say describe three, and I will describe the third game in the hot list. You can always say exit`;
+            sessionAttributes.speakOutput += sessionAttributes.repromptSpeech;
+            return handlerInput.responseBuilder
+                .speak(sessionAttributes.speakOutput)
+                .reprompt(sessionAttributes.repromptSpeech)
+                .withShouldEndSession(false)
+                .getResponse();
+        }
+
+        const game = await bgg.loadGame(id);
+        console.log(JSON.stringify(game));
+        sessionAttributes.speakOutput += describeCategoryAndMechanics(game);
+
+        if (supportsDisplay(handlerInput)) {
+            console.log("displaying body template");
+            const body3 = bodyTemplate3(game, handlerInput.responseBuilder, sessionAttributes);
+            console.log(JSON.stringify(body3));
+            return body3;
+        } else {
+            return handlerInput.responseBuilder
+                .speak(sessionAttributes.speakOutput)
+                .reprompt(sessionAttributes.repromptSpeech)
+                .withShouldEndSession(true)
+                .getResponse();
+        }
+    }
+};
 
 const HotIntentHandler = {
     canHandle(handlerInput) {
@@ -17,10 +103,15 @@ const HotIntentHandler = {
     },
     async handle(handlerInput) {
         console.log("handling HotIntent");
-        const currentIntent = handlerInput.requestEnvelope.request.intent;
+        const request = handlerInput.requestEnvelope.request
+        const currentIntent = request.intent;
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.speakOutput = "";
+
+        if (request.type === 'LaunchRequest' && handlerInput.requestEnvelope.session.new) {
+            sessionAttributes.speakOutput = "Board game geek dot com ranks the top hot boardgames. ";
+        }
 
         sessionAttributes.pageSize = 10;
         if (isSlotValid("count", isANumber, currentIntent)) {
@@ -28,26 +119,15 @@ const HotIntentHandler = {
         }
 
         if (sessionAttributes.pageSize > 50) {
-            sessionAttributes.speakOutput = "Board game geek lists the top fifty games. ";
+            sessionAttributes.speakOutput += "Board game geek lists the top fifty games. ";
             sessionAttributes.pageSize = 10;
-        }
-        if (handlerInput.requestEnvelope.request.type === 'LaunchRequest') {
-            sessionAttributes.speakOutput = "Board game geek dot com ranks the top hot boardgames. ";
         }
         sessionAttributes.speakOutput += `Here are the top ${sessionAttributes.pageSize}: `;
 
-        var items = [];
-        try {
-            items = await bgg.getHotList();
-            sessionAttributes.items = items.slice(0, sessionAttributes.pageSize);
-            sessionAttributes.items.forEach(function(i) {
-                sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
-            });
-        } catch(error){
-            console.log(error);
-            throw error;
-        }
-
+        await loadItems(sessionAttributes);
+        sessionAttributes.items.forEach(function(i) {
+          sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
+        });
         console.log(sessionAttributes.speakOutput);
 
         if (supportsDisplay(handlerInput)) {
@@ -91,7 +171,6 @@ const PreviousIntentHandler = {
         }
     }
 };
-
 
 const HelpHandler = {
     canHandle(handlerInput) {
@@ -253,6 +332,15 @@ const LocalizationInterceptor = {
 };
 
 
+async function loadItems(sessionAttributes) {
+    try {
+        const items = await bgg.getHotList();
+        sessionAttributes.items = items.slice(0, sessionAttributes.pageSize);
+    } catch(error){
+        console.log(error);
+        throw error;
+    }
+}
 
 function isANumber(maybeNumber) {
     return !isNaN(parseInt(maybeNumber));
@@ -297,6 +385,90 @@ function supportsDisplay(handlerInput) {
     return hasDisplay;
 }
 
+function bodyTemplate3(game, response, sessionAttributes) {
+    const bodyTemplateDirective = {
+        type: "BodyTemplate3",
+        token: game.id,
+        title: game.name.value,
+        image: imageMaker(game.name.value, game.thumbnail),
+        textContent:new Alexa.PlainTextContentHelper()
+            .withPrimaryText(sessionAttributes.speakOutput)
+            .withSecondaryText(getBoxStats(game))
+            .getTextContent()
+    };
+
+    if (sessionAttributes.speakOutput) {
+        response.speak(sessionAttributes.speakOutput);
+    }
+
+    return response
+        .addRenderTemplateDirective(bodyTemplateDirective)
+        .getResponse();
+}
+
+function getBoxStats(game) {
+    return `👨‍👩‍👧‍👦 ${game.minplayers.value} to ${game.maxplayers.value}.\n⏰ ${game.playingtime.value} minutes.`
+}
+
+function describeCategoryAndMechanics(game) {
+    let response = getFirstOrOnly(game.name).value;
+
+    const designers = game.link
+        .filter(function(l) {
+            return l.type === 'boardgamedesigner' && l.id !== '3';
+        })
+        .map(function(l) { return l.value; });
+    if (designers.length !== 0) {
+        response += `, by ${designers.join(", ")}`;
+    }
+
+    const artists = game.link
+        .filter(function(l) {
+            return l.type === 'boardgameartist' && l.id !== '3';
+        })
+        .map(function(l) { return l.value; });
+    if (artists.length !== 0) {
+        response += `, with art by ${artists.join(", ")}`;
+    }
+
+    let sayGame=' game';
+    const categories = game.link
+        .filter(function(l) {
+            return l.type === 'boardgamecategory';
+        })
+        .map(function(l) {
+            if (l.value.toLowerCase().includes('game')) {
+                sayGame = '';
+            }
+            return l.value;
+        });
+    if (categories.length !== 0) {
+        response += `, is ${chooseArticle(categories[0])} ${categories.join(", ")}${sayGame}`;
+    }
+
+    const mechanics = game.link
+        .filter(function(l) {
+            return l.type === 'boardgamemechanic';
+        })
+        .map(function(l) { return l.value; });
+    if (mechanics.length !== 0) {
+        response += ` using the following mechanics: ${mechanics.join(", ")}.`;
+    }
+
+    return response
+}
+
+const VOWELS = "AEIOUaeiou";
+function chooseArticle(word) {
+    if (typeof word !== 'string' && !word instanceof String) {
+        return "";
+    }
+    if (VOWELS.includes(word.charAt(0)) || word === 'hour') {
+        return "an";
+    }
+    return "a";
+}
+
 function listTemplateMaker(pListTemplateType, pHandlerInput, pArray, pTitle, pOutputSpeech) {
     const response = pHandlerInput.responseBuilder;
     var title = pTitle;
@@ -317,21 +489,43 @@ function listTemplateMaker(pListTemplateType, pHandlerInput, pArray, pTitle, pOu
         backButton: 'hidden',
         title,
         listItems: itemList
-    })
+    });
 
     return response.getResponse();
 }
 
+function getFirstOrOnly(maybeArray) {
+    if (Array.isArray(maybeArray)) {
+        return array[0];
+    } else {
+        return maybeArray;
+    }
+}
+
+function hasSlot(slotName, currentIntent) {
+  return Object.prototype.hasOwnProperty.call(currentIntent, "slots")
+      && Object.prototype.hasOwnProperty.call(currentIntent.slots, slotName)
+      && Object.prototype.hasOwnProperty.call(currentIntent.slots[slotName], "value");
+}
+
+function getSlotValue(slotName, currentIntent) {
+  return Object.prototype.hasOwnProperty.call(currentIntent, "slots")
+      && Object.prototype.hasOwnProperty.call(currentIntent.slots, slotName)
+      && Object.prototype.hasOwnProperty.call(currentIntent.slots[slotName], "value")
+      && currentIntent.slots[slotName].value;
+}
+
 const skillBuilder = Alexa.SkillBuilders.custom();
 exports.handler = skillBuilder
-  .addRequestHandlers(
-    HotIntentHandler,
-    PreviousIntentHandler,
-    HelpHandler,
-    RepeatHandler,
-    ExitHandler,
-    SessionEndedRequestHandler
-  )
-  .addRequestInterceptors(LocalizationInterceptor)
-  .addErrorHandlers(ErrorHandler)
-  .lambda();
+    .addRequestHandlers(
+        ShowBoardGameIntentHandler,
+        HotIntentHandler,
+        PreviousIntentHandler,
+        HelpHandler,
+        RepeatHandler,
+        ExitHandler,
+        SessionEndedRequestHandler
+    )
+    .addRequestInterceptors(LocalizationInterceptor)
+    .addErrorHandlers(ErrorHandler)
+    .lambda();

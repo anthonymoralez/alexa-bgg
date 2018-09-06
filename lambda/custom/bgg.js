@@ -75,6 +75,14 @@ module.exports = {
     } catch(err) {
       console.log(err);
     }
+  },
+  async loadGame(gameId) {
+    const resp = await bgg("thing", {thingtype: 'boardgame', id: gameId});
+    return resp.items.item;
+  },
+  async search(query) {
+    const resp = await bgg("search", {thingtype: 'boardgame', query});
+    return resp.items.item;
   }
 };
 

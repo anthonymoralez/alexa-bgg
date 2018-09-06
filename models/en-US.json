@@ -73,13 +73,31 @@
                     "samples": []
                 },
                 {
-                    "name":"BGGHotIntent",
+                    "name": "ShowBoardGameIntent",
+                    "slots":[
+                        {
+                            "name": "gameName",
+                            "type": "AMAZON.Game"
+                        }
+                    ],
+                    "samples": [
+                        "about {gameName}",
+                        "select {gameName}",
+                        "open {gameName}",
+                        "open up {gameName}",
+                        "show {gameName}",
+                        "show me {gameName}",
+                        "describe {gameName}",
+                        "describe number {gameName}"
+                    ]
+                },
+                {
+                    "name": "BGGHotIntent",
                     "slots":[
                         {
                             "name": "count",
                             "type": "AMAZON.NUMBER"
                         }
-
                     ],
                     "samples":[
                         "for the top {count} boardgames",
