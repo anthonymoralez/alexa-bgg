@@ -2,7 +2,7 @@
 /* jshint laxbreak: true */
 /* jshint node: true */
 /* eslint ecmaVersion: 2017 */
-/* vim: ts=4 sw=4 expandtab */
+// vim: ts=4 sw=4 expandtab
 
 "use strict";
 const Alexa = require('ask-sdk');

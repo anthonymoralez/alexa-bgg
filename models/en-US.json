@@ -25,10 +25,6 @@
                     "samples": []
                 },
                 {
-                    "name": "AMAZON.NoIntent",
-                    "samples": []
-                },
-                {
                     "name": "AMAZON.PageDownIntent",
                     "samples": []
                 },
@@ -66,10 +62,6 @@
                 },
                 {
                     "name": "AMAZON.StopIntent",
-                    "samples": []
-                },
-                {
-                    "name": "AMAZON.YesIntent",
                     "samples": []
                 },
                 {
@@ -114,7 +106,10 @@
                         "for the top {count} hot games",
                         "the top {count} hot games",
                         "what are the hot games",
-                        "tell me the top {count} games"
+                        "tell me the top {count} games",
+                        "to list the top {count} boardgames",
+                        "to list the top {count} board games",
+                        "to list the top {count} games"
                     ]
                 }
             ]
