@@ -1,7 +1,7 @@
 /* jshint esversion: 6 */
 /* jshint laxbreak: true */
 /* jshint node: true */
-/* global require, exports, console */
+/* eslint ecmaVersion: 2017 */
 /* vim: ts=4 sw=4 expandtab */
 
 "use strict";
@@ -23,7 +23,6 @@ const ShowBoardGameIntentHandler = {
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
         sessionAttributes.speakOutput = "";
-
 
         let id;
         if (request.token) {
@@ -61,6 +60,7 @@ const ShowBoardGameIntentHandler = {
                 }
             }
             if (id === undefined) {
+                console.log(`searching bgg for ${name}`);
                 const results = await bgg.search(name);
                 console.log(results);
                 id = getFirstOrOnly(results).id;
@@ -78,6 +78,7 @@ const ShowBoardGameIntentHandler = {
 
         const game = await bgg.loadGame(id);
         console.log(JSON.stringify(game));
+        sessionAttributes.game = game;
         sessionAttributes.speakOutput += describeCategoryAndMechanics(game);
 
         if (supportsDisplay(handlerInput)) {
@@ -122,12 +123,13 @@ const HotIntentHandler = {
             sessionAttributes.speakOutput += "Board game geek lists the top fifty games. ";
             sessionAttributes.pageSize = 10;
         }
-        sessionAttributes.speakOutput += `Here are the top ${sessionAttributes.pageSize}: `;
+        sessionAttributes.listOutput = `Here are the top ${sessionAttributes.pageSize}: `;
 
         await loadItems(sessionAttributes);
         sessionAttributes.items.forEach(function(i) {
-          sessionAttributes.speakOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
+          sessionAttributes.listOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
         });
+        sessionAttributes.speakOutput += sessionAttributes.listOutput
         console.log(sessionAttributes.speakOutput);
 
         if (supportsDisplay(handlerInput)) {
@@ -152,13 +154,14 @@ const PreviousIntentHandler = {
             request.intent.name === 'AMAZON.PreviousIntent';
     },
     handle(handlerInput) {
-        var speechOutput;
-        var reprompt;
+        console.log("handling previous intent");
         const attributes = handlerInput.attributesManager.getSessionAttributes();
+        console.log(JSON.stringify(attributes));
 
-        //If we are showing a fruit, go back to the main list
-        if (attributes.items) {
-            return listTemplateMaker('ListTemplate2', handlerInput, attributes.items, `Board Game Geek Top ${attributes.pageSize} Boardgames`, attributes.speakOutput);
+        //If we are showing a game and can go back to the main list then go back to the list.
+        if (supportsDisplay(handlerInput) && attributes.game && attributes.items) {
+            console.log("displaying main list");
+            return listTemplateMaker('ListTemplate2', handlerInput, attributes.items, `Board Game Geek Top ${attributes.pageSize} Boardgames`, attributes.listOutput);
         } else {
             const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
             attributes.speakOutput = requestAttributes.t('HELP_MESSAGE');
@@ -308,9 +311,7 @@ const languageStrings = {
                 ["Fiftieth place is", "At number 50 is"]
             ],
             STOP_MESSAGE: 'Good bye',
-            WELCOME_REPROMPT: 'For instructions on what you can say, please say help me.',
-            PROMPT: '',
-            HELP_MESSAGE: 'Right now I can only list the top hot boardgames from board game geek. Simply what are the top boardgames. Check back soon because I\'m learning more every month.',
+            HELP_MESSAGE: 'Right now I can only list the top hot boardgames from board game geek. Just ask what are the top boardgames. Check back soon because I\'m learning more every month.',
         },
     },
 };

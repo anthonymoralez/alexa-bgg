@@ -1,7 +1,7 @@
 /* jshint esversion: 6 */
 /* jshint laxbreak: true */
 /* jshint node: true */
-/* global require, exports, console */
+/* eslint ecmaVersion: 2017 */
 
 "use strict";
 
