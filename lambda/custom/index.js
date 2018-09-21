@@ -25,6 +25,7 @@ const ShowBoardGameIntentHandler = {
         sessionAttributes.speakOutput = "";
 
         let id;
+        let gameName;
         if (request.token) {
             id = request.token;
             console.log(`request.token: ${request.token}`);
@@ -37,13 +38,15 @@ const ShowBoardGameIntentHandler = {
 
                 console.log(`sessionAttributes: ${JSON.stringify(sessionAttributes)}`);
                 if (sessionAttributes.items && sessionAttributes.items.length === 0) {
-                    await loadItems(sessionAttributes);
+                    await loadItems(handlerInput);
                     console.log("loaded games");
                 }
 
                 const rank = parseInt(name,10);
                 id = sessionAttributes.items[rank - 1].id;
+                gameName = `the ${ordinalSuffix(i)} hottest game`;
             } else {
+                gameName = name;
                 console.log(`gameName: ${name}`);
                 console.log(`sessionAttributes: ${JSON.stringify(sessionAttributes)}`);
 
@@ -60,26 +63,30 @@ const ShowBoardGameIntentHandler = {
                 }
             }
             if (id === undefined) {
-                console.log(`searching bgg for ${name}`);
+                const searchingMessage = `Searching board game geek dot com for ${name}...`
+                console.log(searchingMessage);
+                await callDirectiveService(handlerInput, searchingMessage);
                 const results = await bgg.search(name);
                 console.log(results);
-                id = getFirstOrOnly(results).id;
+                if (results && results.length !== 0) {
+                    id = getBestMatch(results, function(i) { return i.name.value.toLowerCase() === name;  }).id;
+                } else {
+                    return gameNotFound(handlerInput, sessionAttributes);
+                }
             }
         } else {
-            sessionAttributes.speakOutput = "I'm sorry. I think you were asking me to tell you about a board game, but I didn't catch the name or number of the game.";
-            sessionAttributes.repromptSpeech = ` You can say describe ${sessionAttributes.items[0].name.value}. Or you can say describe three, and I will describe the third game in the hot list. You can always say exit`;
-            sessionAttributes.speakOutput += sessionAttributes.repromptSpeech;
-            return handlerInput.responseBuilder
-                .speak(sessionAttributes.speakOutput)
-                .reprompt(sessionAttributes.repromptSpeech)
-                .withShouldEndSession(false)
-                .getResponse();
+            return gameNotFound(handlerInput, sessionAttributes);
         }
 
+        if (id === null) {
+            return gameNotFound(handlerInput, sessionAttributes);
+        }
+        await callDirectiveService(handlerInput, `Let me see, where are the details for ${gameName}...`);
         const game = await bgg.loadGame(id);
+        await callDirectiveService(handlerInput, `ah, found them`);
         console.log(JSON.stringify(game));
-        sessionAttributes.game = game;
-        sessionAttributes.speakOutput += describeCategoryAndMechanics(game);
+        sessionAttributes.lastGame = sessionAttributes.currentGame;
+        sessionAttributes.currentGame = game;
 
         if (supportsDisplay(handlerInput)) {
             console.log("displaying body template");
@@ -87,6 +94,7 @@ const ShowBoardGameIntentHandler = {
             console.log(JSON.stringify(body3));
             return body3;
         } else {
+            sessionAttributes.speakOutput += describeCategoryAndMechanics(game);
             return handlerInput.responseBuilder
                 .speak(sessionAttributes.speakOutput)
                 .reprompt(sessionAttributes.repromptSpeech)
@@ -125,24 +133,33 @@ const HotIntentHandler = {
         }
         sessionAttributes.listOutput = `Here are the top ${sessionAttributes.pageSize}: `;
 
-        await loadItems(sessionAttributes);
-        sessionAttributes.items.forEach(function(i) {
-          sessionAttributes.listOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
-        });
-        sessionAttributes.speakOutput += sessionAttributes.listOutput
-        console.log(sessionAttributes.speakOutput);
-
-        if (supportsDisplay(handlerInput)) {
-            console.log("displaying list2 template");
-            const list2 = listTemplateMaker('ListTemplate2', handlerInput, sessionAttributes.items, `Board Game Geek Top ${sessionAttributes.pageSize} Boardgames`, sessionAttributes.speakOutput);
-            console.log(JSON.stringify(list2));
-            return list2;
-        } else {
+        await loadItems(handlerInput);
+        if (sessionAttributes.items === undefined) {
+            sessionAttributes.speakOutput += "Unfortunately, I can't get information from board game geek right now."
             return handlerInput.responseBuilder
                 .speak(sessionAttributes.speakOutput)
                 .reprompt(sessionAttributes.repromptSpeech)
                 .withShouldEndSession(true)
                 .getResponse();
+        } else {
+            sessionAttributes.items.forEach(function(i) {
+              sessionAttributes.listOutput += `${getRandomElement(requestAttributes.t('NEXT_ITEM_MESSAGES')[i.rank-1])} ${i.name.value}. `;
+            });
+            sessionAttributes.speakOutput += sessionAttributes.listOutput
+            console.log(sessionAttributes.speakOutput);
+
+            if (supportsDisplay(handlerInput)) {
+                console.log("displaying list2 template");
+                const list2 = listTemplateMaker('ListTemplate2', handlerInput, sessionAttributes.items, `Board Game Geek Top ${sessionAttributes.pageSize} Boardgames`, sessionAttributes.speakOutput);
+                console.log(JSON.stringify(list2));
+                return list2;
+            } else {
+                return handlerInput.responseBuilder
+                    .speak(sessionAttributes.speakOutput)
+                    .reprompt(sessionAttributes.repromptSpeech)
+                    .withShouldEndSession(true)
+                    .getResponse();
+            }
         }
     },
 };
@@ -158,9 +175,14 @@ const PreviousIntentHandler = {
         const attributes = handlerInput.attributesManager.getSessionAttributes();
         console.log(JSON.stringify(attributes));
 
-        //If we are showing a game and can go back to the main list then go back to the list.
-        if (supportsDisplay(handlerInput) && attributes.game && attributes.items) {
+        if (supportsDisplay(handlerInput) && attributes.lastGame && attributes.currentGame) {
+            attributes.currentGame = attributes.lastGame;
+            attributes.lastGame = undefined;
+            attributes.speakOutput = '';
+            return bodyTemplate3(attributes.currentGame, handlerInput.responseBuilder, attributes);
+        } else if (supportsDisplay(handlerInput) && attributes.lastGame === undefined && attributes.items) {
             console.log("displaying main list");
+            attributes.lastGame = undefined;
             return listTemplateMaker('ListTemplate2', handlerInput, attributes.items, `Board Game Geek Top ${attributes.pageSize} Boardgames`, attributes.listOutput);
         } else {
             const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
@@ -333,14 +355,45 @@ const LocalizationInterceptor = {
 };
 
 
-async function loadItems(sessionAttributes) {
+async function loadItems(handlerInput) {
+    const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
+    await callDirectiveService(handlerInput, "Checking board game geek dot com...");
     try {
         const items = await bgg.getHotList();
-        sessionAttributes.items = items.slice(0, sessionAttributes.pageSize);
+        if (items !== undefined) {
+            sessionAttributes.items = items.slice(0, sessionAttributes.pageSize);
+        } else {
+            sessionAttributes.items = undefined
+        }
+
     } catch(error){
         console.log(error);
         throw error;
     }
+}
+
+function callDirectiveService(handlerInput, message) {
+  // Call Alexa Directive Service.
+  const requestEnvelope = handlerInput.requestEnvelope;
+  const directiveServiceClient = handlerInput.serviceClientFactory.getDirectiveServiceClient();
+
+  const requestId = requestEnvelope.request.requestId;
+  const endpoint = requestEnvelope.context.System.apiEndpoint;
+  const token = requestEnvelope.context.System.apiAccessToken;
+
+  // build the progressive response directive
+  const directive = {
+    header: {
+      requestId,
+    },
+    directive: {
+      type: 'VoicePlayer.Speak',
+      speech: message
+    },
+  };
+
+  // send directive
+  return directiveServiceClient.enqueue(directive, endpoint, token);
 }
 
 function isANumber(maybeNumber) {
@@ -386,7 +439,31 @@ function supportsDisplay(handlerInput) {
     return hasDisplay;
 }
 
+function gameSuggestion(sessionAttributes) {
+    let gameSuggestion
+    if (sessionAttributes.items && sessionAttributes.items.length > 0) {
+        gameSuggestion =sessionAttributes.items[0].name.value
+    } else {
+        gameSuggestion = getRandomElement(["Scythe", "Agricola", "Root", "Suburbia"])
+    }
+    return gameSuggestion
+}
+
+function gameNotFound(handlerInput, sessionAttributes) {
+    const suggestion = gameSuggestion(sessionAttributes)
+    sessionAttributes.speakOutput = "I'm sorry. I think you were asking me to tell you about a board game, but I didn't catch the name or number of the game.";
+    sessionAttributes.repromptSpeech = ` You can say describe ${suggestion}. Or you can say describe three, and I will describe the third game in the hot list. You can always say exit`;
+    sessionAttributes.speakOutput += sessionAttributes.repromptSpeech;
+    return handlerInput.responseBuilder
+        .speak(sessionAttributes.speakOutput)
+        .reprompt(sessionAttributes.repromptSpeech)
+        .withShouldEndSession(false)
+        .getResponse();
+}
+
 function bodyTemplate3(game, response, sessionAttributes) {
+    sessionAttributes.speakOutput += describeCategoryAndMechanics(game);
+
     const bodyTemplateDirective = {
         type: "BodyTemplate3",
         token: game.id,
@@ -398,9 +475,7 @@ function bodyTemplate3(game, response, sessionAttributes) {
             .getTextContent()
     };
 
-    if (sessionAttributes.speakOutput) {
-        response.speak(sessionAttributes.speakOutput);
-    }
+    response.speak(sessionAttributes.speakOutput);
 
     return response
         .addRenderTemplateDirective(bodyTemplateDirective)
@@ -413,50 +488,55 @@ function getBoxStats(game) {
 
 function describeCategoryAndMechanics(game) {
     let response = getFirstOrOnly(game.name).value;
+    const designers = selectLinkValues(game.link, 'boardgamedesigner');
+    const artists = selectLinkValues(game.link, 'boardgameartist');
+    const categories = selectLinkValues(game.link, 'boardgamecategory');
+    const mechanics = selectLinkValues(game.link, 'boardgamemechanic');
 
-    const designers = game.link
-        .filter(function(l) {
-            return l.type === 'boardgamedesigner' && l.id !== '3';
-        })
+    response += joinWithIntro(designers, ", by ");
+    response += joinWithIntro(artists, ", with art by ");
+    response += joinWithIntro(categories, `, is ${chooseArticle(categories[0])}`) + maybeSayGame(categories);
+    response += joinWithIntro(mechanics, ' using the following mechanics: ');
+
+    return response;
+}
+
+function joinWithIntro(words, intro) {
+    if (words.length !== 0) {
+        insertAndIfNecessary(words);
+        return `${intro}${words.join(", ")}`;
+    }
+    return "";
+}
+
+// Link id === 3 is the "Unknown" designer/artist/etc
+function selectLinkValues(link, type) {
+    return link
+        .filter((l) => { return l.type === type && l.id !== '3'; })
         .map(function(l) { return l.value; });
-    if (designers.length !== 0) {
-        response += `, by ${designers.join(", ")}`;
-    }
+}
 
-    const artists = game.link
-        .filter(function(l) {
-            return l.type === 'boardgameartist' && l.id !== '3';
-        })
-        .map(function(l) { return l.value; });
-    if (artists.length !== 0) {
-        response += `, with art by ${artists.join(", ")}`;
+function maybeSayGame(categories) {
+    if (categories.find((l) => { return l.toLowerCase().includes('game')})) {
+        return '';
+    } else {
+        return ' game';
     }
+}
 
-    let sayGame=' game';
-    const categories = game.link
-        .filter(function(l) {
-            return l.type === 'boardgamecategory';
-        })
-        .map(function(l) {
-            if (l.value.toLowerCase().includes('game')) {
-                sayGame = '';
-            }
-            return l.value;
-        });
-    if (categories.length !== 0) {
-        response += `, is ${chooseArticle(categories[0])} ${categories.join(", ")}${sayGame}`;
+function ordinalSuffix(i) {
+    const j = i % 10;
+    const k = i % 100;
+    if (j == 1 && k != 11) {
+        return `${i}st`;
     }
-
-    const mechanics = game.link
-        .filter(function(l) {
-            return l.type === 'boardgamemechanic';
-        })
-        .map(function(l) { return l.value; });
-    if (mechanics.length !== 0) {
-        response += ` using the following mechanics: ${mechanics.join(", ")}.`;
+    if (j == 2 && k != 12) {
+        return `${i}nd`;
     }
-
-    return response
+    if (j == 3 && k != 13) {
+        return `${i}rd`;
+    }
+    return `${i}th`;
 }
 
 const VOWELS = "AEIOUaeiou";
@@ -468,6 +548,12 @@ function chooseArticle(word) {
         return "an";
     }
     return "a";
+}
+
+function insertAndIfNecessary(list) {
+    if (list.length > 1) {
+        list.splice(list.length - 1, 0, 'and');
+    }
 }
 
 function listTemplateMaker(pListTemplateType, pHandlerInput, pArray, pTitle, pOutputSpeech) {
@@ -495,9 +581,22 @@ function listTemplateMaker(pListTemplateType, pHandlerInput, pArray, pTitle, pOu
     return response.getResponse();
 }
 
+function getBestMatch(maybeArray, matcher) {
+    if (!Array.isArray(maybeArray)) {
+        return maybeArray;
+    }
+
+    const maybeExactMatch = maybeArray.find(matcher);
+    if (maybeExactMatch !== undefined) {
+        return maybeExactMatch;
+    } else {
+        return maybeArray[0];
+    }
+}
+
 function getFirstOrOnly(maybeArray) {
     if (Array.isArray(maybeArray)) {
-        return array[0];
+        return maybeArray[0];
     } else {
         return maybeArray;
     }
@@ -529,4 +628,5 @@ exports.handler = skillBuilder
     )
     .addRequestInterceptors(LocalizationInterceptor)
     .addErrorHandlers(ErrorHandler)
+    .withApiClient(new Alexa.DefaultApiClient())
     .lambda();

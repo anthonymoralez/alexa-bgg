@@ -38,7 +38,7 @@ async function getHotListFromDDB() {
     console.debug(`SCAN RESULTS:\n ${results.Items}`);
     return results.Items.sort((a,b) => { return a.rank - b.rank;});
   } catch(error) {
-    console.error(`getFromDDB: ${error}`);
+    console.error(`getFromDDB: ${JSON.stringify(error.error)}`);
   }
 }
 
@@ -57,7 +57,7 @@ async function putHotListToDDB() {
     console.debug(`BATCHWRITE_2: ${JSON.stringify(results)}`);
     return bggList.items.item;
   } catch(error) {
-    console.error(`putToDDB ${error}`);
+    console.error(`putToDDB ${JSON.stringify(error.error)}`);
   }
 
 }
