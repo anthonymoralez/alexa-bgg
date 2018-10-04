@@ -5,10 +5,88 @@
 // vim: ts=4 sw=4 expandtab
 
 "use strict";
-const Alexa = require('ask-sdk');
+const Alexa = require('ask-sdk-core');
 const i18n = require('i18next');
 const sprintf = require('i18next-sprintf-postprocessor');
 const bgg = require('./bgg');
+
+const CFIRHotListHandler = {
+    canHandle(handlerInput){
+        console.log('CAN_HANDLE: CFIRHotListHandler');
+        console.log(`REQUEST ENVELOPE: ${JSON.stringify(handlerInput.requestEnvelope)}`);
+        return handlerInput.requestEnvelope.request.type === `CanFulfillIntentRequest` &&
+            handlerInput.requestEnvelope.request.intent.name === 'BGGHotIntent';
+    },
+    handle(handlerInput) {
+        console.log(`HANDLER: CFIRHotListHandler`);
+        console.log(`REQUEST ENVELOPE: ${JSON.stringify(handlerInput.requestEnvelope)}`);
+        const currentIntent = handlerInput.requestEnvelope.request.intent;
+        if (isSlotValid("count", isANumber, currentIntent)) {
+            const count =  currentIntent.slots.count.value;
+            const canFulfill = (count < 50) ? "YES": "NO";
+            return handlerInput.responseBuilder
+                .withCanFulfillIntent(
+                    {
+                        "canFulfill": canFulfill,
+                        "slots":{
+                            "count": {
+                                "canUnderstand": canFulfill,
+                                "canFulfill": canFulfill
+                            }
+                        }
+                    })
+                .getResponse();
+        }
+        return handlerInput.responseBuilder
+            .withCanFulfillIntent(
+                {
+                    "canFulfill": "YES"
+                })
+            .getResponse();
+    }
+}
+const CFIRShowBGIHandler = {
+    canHandle(handlerInput){
+        return handlerInput.requestEnvelope.request.type === `CanFulfillIntentRequest` &&
+            handlerInput.requestEnvelope.request.intent.name === 'ShowBoardGameIntent';
+    },
+    async handle(handlerInput) {
+        console.log(`HANDLER: CFIRShowBGIHandler`);
+        console.log(`REQUEST ENVELOPE: ${JSON.stringify(handlerInput.requestEnvelope)}`);
+        const currentIntent = handlerInput.requestEnvelope.request.intent;
+        if (hasSlot("gameName", currentIntent)) {
+            const name = getSlotValue("gameName", currentIntent).toLowerCase();
+            const results = await bgg.search(name);
+            console.log(results);
+            if (results && results.length !== 0) {
+                return handlerInput.responseBuilder
+                    .withCanFulfillIntent(
+                        {
+                            "canFulfill": "YES",
+                            "slots":{
+                                "gameName": {
+                                    "canUnderstand": "YES",
+                                    "canFulfill": "YES"
+                                }
+                            }
+                        })
+                    .getResponse()
+            }
+        }
+        return handlerInput.responseBuilder
+            .withCanFulfillIntent(
+                {
+                    "canFulfill": "NO",
+                    "slots":{
+                        "gameName": {
+                            "canUnderstand": "NO",
+                            "canFulfill": "NO"
+                        }
+                    }
+                })
+            .getResponse()
+    }
+};
 
 const ShowBoardGameIntentHandler = {
     canHandle(handlerInput) {
@@ -618,6 +696,8 @@ function getSlotValue(slotName, currentIntent) {
 const skillBuilder = Alexa.SkillBuilders.custom();
 exports.handler = skillBuilder
     .addRequestHandlers(
+        CFIRHotListHandler,
+        CFIRShowBGIHandler,
         ShowBoardGameIntentHandler,
         HotIntentHandler,
         PreviousIntentHandler,

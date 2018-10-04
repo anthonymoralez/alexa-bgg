@@ -23,9 +23,14 @@
         "endpoint": {
           "sourceDir": "lambda/custom"
         },
-        "interfaces": [{
-          "type": "RENDER_TEMPLATE"
-        }]
+        "interfaces": [
+          {
+            "type": "RENDER_TEMPLATE"
+          },
+          {
+            "type":"CAN_FULFILL_INTENT_REQUEST"
+          }
+        ]
       }
     },
     "manifestVersion": "1.0",
