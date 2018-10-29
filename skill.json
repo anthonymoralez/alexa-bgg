@@ -6,11 +6,66 @@
           "summary": "Alexa can give you hot information from Board Game Geek.",
           "examplePhrases": [
             "Alexa open board game geek",
-            "Alexa ask board game geek what are the hot boardgames",
+            "Alexa tell board game geek to describe Root",
             "Alexa ask board game geek for the top five hot boardgames"
           ],
-          "name": "board game geek",
-          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games."
+          "name": "Board Game Geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games.",
+          "keywords": ["boardgamegeek", "boardgames", "tabletop", "table top games", "board game geek", "table top", "games", "bgg"],
+          "smallIconUri": "https://s3.amazonaws.com/alexabgg/icon_small.png",
+          "largeIconUri": "https://s3.amazonaws.com/alexabgg/icon_big.png"
+        },
+        "en-AU": {
+          "summary": "Alexa can give you hot information from Board Game Geek.",
+          "examplePhrases": [
+            "Alexa open board game geek",
+            "Alexa tell board game geek to describe Root",
+            "Alexa ask board game geek for the top five hot boardgames"
+          ],
+          "name": "Board Game Geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games.",
+          "keywords": ["boardgamegeek", "boardgames", "tabletop", "table top games", "board game geek", "table top", "games", "bgg"],
+          "smallIconUri": "https://s3.amazonaws.com/alexabgg/icon_small.png",
+          "largeIconUri": "https://s3.amazonaws.com/alexabgg/icon_big.png"
+        },
+        "en-CA": {
+          "summary": "Alexa can give you hot information from Board Game Geek.",
+          "examplePhrases": [
+            "Alexa open board game geek",
+            "Alexa tell board game geek to describe Root",
+            "Alexa ask board game geek for the top five hot boardgames"
+          ],
+          "name": "Board Game Geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games.",
+          "keywords": ["boardgamegeek", "boardgames", "tabletop", "table top games", "board game geek", "table top", "games", "bgg"],
+          "smallIconUri": "https://s3.amazonaws.com/alexabgg/icon_small.png",
+          "largeIconUri": "https://s3.amazonaws.com/alexabgg/icon_big.png"
+        },
+        "en-IN": {
+          "summary": "Alexa can give you hot information from Board Game Geek.",
+          "examplePhrases": [
+            "Alexa open board game geek",
+            "Alexa tell board game geek to describe Root",
+            "Alexa ask board game geek for the top five hot boardgames"
+          ],
+          "name": "Board Game Geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games.",
+          "keywords": ["boardgamegeek", "boardgames", "tabletop", "table top games", "board game geek", "table top", "games", "bgg"],
+          "smallIconUri": "https://s3.amazonaws.com/alexabgg/icon_small.png",
+          "largeIconUri": "https://s3.amazonaws.com/alexabgg/icon_big.png"
+        },
+        "en-GB": {
+          "summary": "Alexa can give you hot information from Board Game Geek.",
+          "examplePhrases": [
+            "Alexa open board game geek",
+            "Alexa tell board game geek to describe Root",
+            "Alexa ask board game geek for the top five hot boardgames"
+          ],
+          "name": "Board Game Geek",
+          "description": "Alexa can now tell you about hot games from boardgamegeek.com. Board game geek is the internet's foremost authority on all things board games.",
+          "keywords": ["boardgamegeek", "boardgames", "tabletop", "table top games", "board game geek", "table top", "games", "bgg"],
+          "smallIconUri": "https://s3.amazonaws.com/alexabgg/icon_small.png",
+          "largeIconUri": "https://s3.amazonaws.com/alexabgg/icon_big.png"
         }
       },
       "isAvailableWorldwide": true,
