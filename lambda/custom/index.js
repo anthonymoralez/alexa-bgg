@@ -13,7 +13,6 @@ const bgg = require('./bgg');
 const CFIRHotListHandler = {
     canHandle(handlerInput){
         console.log('CAN_HANDLE: CFIRHotListHandler');
-        console.log(`REQUEST ENVELOPE: ${JSON.stringify(handlerInput.requestEnvelope)}`);
         return handlerInput.requestEnvelope.request.type === `CanFulfillIntentRequest` &&
             handlerInput.requestEnvelope.request.intent.name === 'BGGHotIntent';
     },
@@ -47,6 +46,7 @@ const CFIRHotListHandler = {
 }
 const CFIRShowBGIHandler = {
     canHandle(handlerInput){
+        console.log('CAN_HANDLE: CFIRShowBGIHandler');
         return handlerInput.requestEnvelope.request.type === `CanFulfillIntentRequest` &&
             handlerInput.requestEnvelope.request.intent.name === 'ShowBoardGameIntent';
     },
@@ -90,12 +90,13 @@ const CFIRShowBGIHandler = {
 
 const ShowBoardGameIntentHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: ShowBoardGameIntentHandler');
         return handlerInput.requestEnvelope.request.type === 'Display.ElementSelected'
             || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
                 && handlerInput.requestEnvelope.request.intent.name === 'ShowBoardGameIntent');
     },
     async handle(handlerInput) {
-        console.log("show board game intent");
+        console.log(`HANDLER: ShowBoardGameIntent`);
         const request = handlerInput.requestEnvelope.request;
         const currentIntent = request.intent;
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
@@ -184,12 +185,13 @@ const ShowBoardGameIntentHandler = {
 
 const HotIntentHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: HotIntentHandler');
         return handlerInput.requestEnvelope.request.type === 'LaunchRequest'
             || (handlerInput.requestEnvelope.request.type === 'IntentRequest'
                 && handlerInput.requestEnvelope.request.intent.name === 'BGGHotIntent');
     },
     async handle(handlerInput) {
-        console.log("handling HotIntent");
+        console.log(`HANDLER: HotIntentHandler`);
         const request = handlerInput.requestEnvelope.request
         const currentIntent = request.intent;
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
@@ -244,12 +246,13 @@ const HotIntentHandler = {
 
 const PreviousIntentHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: PreviousIntentHandler');
         const request = handlerInput.requestEnvelope.request;
         return request.type === 'IntentRequest' &&
             request.intent.name === 'AMAZON.PreviousIntent';
     },
     handle(handlerInput) {
-        console.log("handling previous intent");
+        console.log(`HANDLER: PreviousIntentHandler`);
         const attributes = handlerInput.attributesManager.getSessionAttributes();
         console.log(JSON.stringify(attributes));
 
@@ -277,10 +280,12 @@ const PreviousIntentHandler = {
 
 const HelpHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: HelpHandler');
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
             && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.HelpIntent';
     },
     handle(handlerInput) {
+        console.log(`HANDLER: HelpHandler`);
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
@@ -296,10 +301,12 @@ const HelpHandler = {
 
 const RepeatHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: RepeatHandler');
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
             && handlerInput.requestEnvelope.request.intent.name === 'AMAZON.RepeatIntent';
     },
     handle(handlerInput) {
+        console.log(`HANDLER: RepeatHandler`);
         const sessionAttributes = handlerInput.attributesManager.getSessionAttributes();
 
         return handlerInput.responseBuilder
@@ -311,11 +318,13 @@ const RepeatHandler = {
 
 const ExitHandler = {
     canHandle(handlerInput) {
+        console.log('CAN_HANDLE: ExitHandler');
         return handlerInput.requestEnvelope.request.type === 'IntentRequest'
             && (handlerInput.requestEnvelope.request.intent.name === 'AMAZON.StopIntent'
                 || handlerInput.requestEnvelope.request.intent.name === 'AMAZON.CancelIntent');
     },
     handle(handlerInput) {
+        console.log(`HANDLER: ExitHandler`);
         const requestAttributes = handlerInput.attributesManager.getRequestAttributes();
         const speakOutput = requestAttributes.t('STOP_MESSAGE', requestAttributes.t('SKILL_NAME'));
 
@@ -450,8 +459,12 @@ async function loadItems(handlerInput) {
     }
 }
 
-function callDirectiveService(handlerInput, message) {
+async function callDirectiveService(handlerInput, message) {
   // Call Alexa Directive Service.
+  if (handlerInput.requestEnvelope.request.type === 'Display.ElementSelected') {
+      // Don't use directive service when handling touch events
+      return;
+  }
   const requestEnvelope = handlerInput.requestEnvelope;
   const directiveServiceClient = handlerInput.serviceClientFactory.getDirectiveServiceClient();
 
@@ -471,7 +484,12 @@ function callDirectiveService(handlerInput, message) {
   };
 
   // send directive
-  return directiveServiceClient.enqueue(directive, endpoint, token);
+  try {
+      const resp = await directiveServiceClient.enqueue(directive, endpoint, token);
+      return resp;
+  } catch(err) {
+      console.log(`ERROR: callDirectiveService - ${err}`);
+  }
 }
 
 function isANumber(maybeNumber) {
