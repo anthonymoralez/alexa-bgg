@@ -123,7 +123,7 @@ const ShowBoardGameIntentHandler = {
 
                 const rank = parseInt(name,10);
                 id = sessionAttributes.items[rank - 1].id;
-                gameName = `the ${ordinalSuffix(i)} hottest game`;
+                gameName = `the ${ordinalSuffix(rank)} hottest game`;
             } else {
                 gameName = name;
                 console.log(`gameName: ${name}`);
@@ -230,7 +230,7 @@ const HotIntentHandler = {
 
             if (supportsDisplay(handlerInput)) {
                 console.log("displaying list2 template");
-                const list2 = listTemplateMaker('ListTemplate2', handlerInput, sessionAttributes.items, `Board Game Geek Top ${sessionAttributes.pageSize} Boardgames`, sessionAttributes.speakOutput);
+                const list2 = listTemplateMaker('ListTemplate2', handlerInput, sessionAttributes.items, `Board Game Geek Top ${sessionAttributes.pageSize} Boardgames`, `${requestAttributes.t('NEXT_ITEM_MESSAGES')[0][2]} ${sessionAttributes.items[0].name.value}`);
                 console.log(JSON.stringify(list2));
                 return list2;
             } else {

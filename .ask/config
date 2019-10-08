@@ -13,6 +13,11 @@
             }
           }
         }
+      },
+      "resources": {
+        "manifest": {
+          "eTag": "0d4fcc91c771a4301da743a31de82302"
+        }
       }
     }
   }
