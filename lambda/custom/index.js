@@ -420,7 +420,7 @@ const languageStrings = {
                 ["Fiftieth place is", "At number 50 is"]
             ],
             STOP_MESSAGE: 'Good bye',
-            HELP_MESSAGE: 'Right now I can only list the top hot boardgames from board game geek. Just ask what are the top boardgames. Check back soon because I\'m learning more every month.',
+            HELP_MESSAGE: 'I can list the top hot boardgames from board game geek. Just ask what are the top boardgames. I can also look for and describe boardgames. Simple as me to describe a specific game. For example, describe Ticket to Ride. Check back soon because I\'m learning more every month.',
         },
     },
 };
@@ -590,9 +590,10 @@ function describeCategoryAndMechanics(game) {
     const mechanics = selectLinkValues(game.link, 'boardgamemechanic');
 
     response += joinWithIntro(designers, ", by ");
-    response += joinWithIntro(artists, ", with art by ");
-    response += joinWithIntro(categories, `, is ${chooseArticle(categories[0])}`) + maybeSayGame(categories);
-    response += joinWithIntro(mechanics, ' using the following mechanics: ');
+    response += joinWithIntro(categories, `, is ${chooseArticle(categories[0])} `) + maybeSayGame(categories);
+    response += ` for ${game.minplayers.value} to ${game.maxplayers.value} players that plays in approximately ${game.playingtime.value} minutes. `
+    response += joinWithIntro(artists, "With art by ");
+    response += joinWithIntro(mechanics, ', using the following mechanics: ');
 
     return response;
 }

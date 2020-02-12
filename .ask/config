@@ -17,7 +17,21 @@
       "resources": {
         "manifest": {
           "eTag": "0d4fcc91c771a4301da743a31de82302"
-        }
+        },
+        "lambda": [
+          {
+            "alexaUsage": [
+              "custom/default"
+            ],
+            "arn": "arn:aws:lambda:us-west-2:496206858315:function:ask-board-game-geek-dev",
+            "awsRegion": "us-west-2",
+            "codeUri": "lambda/custom",
+            "functionName": "ask-board-game-geek-dev",
+            "handler": "index.handler",
+            "revisionId": "7b8be3dd-5557-4180-a106-e3bf714c8c5c",
+            "runtime": "nodejs8.10"
+          }
+        ]
       }
     }
   }
